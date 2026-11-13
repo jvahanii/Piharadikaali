@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.pt
+.autoreframe/
+*.mp4
+*.360
+*.jpg
+list.txt

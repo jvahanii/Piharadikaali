@@ -1,0 +1,6 @@
+# PyTorch with CUDA 12.8: pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+torch>=2.11
+torchvision>=0.26
+ultralytics>=8.4
+opencv-python>=5.0
+numpy>=2.5
