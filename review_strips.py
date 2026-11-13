@@ -28,6 +28,8 @@ def main():
     ap.add_argument("folder")
     ap.add_argument("out")
     ap.add_argument("--threshold", type=float, default=0.3)
+    ap.add_argument("--gap", type=float, default=1.5,
+                    help="minimum seconds between candidates; small so back-to-back tricks stay separate")
     args = ap.parse_args()
     folder, out = Path(args.folder), Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -43,7 +45,7 @@ def main():
             continue
         scores = tk.score(model, [c["feats"] for c in cands])
         scores[tk.handling_mask(s, cands)] = 0
-        keep = tk.select(cands, scores, args.threshold)
+        keep = tk.select(cands, scores, args.threshold, gap=args.gap)
         if not keep:
             continue
         src = ar.open_source(path)

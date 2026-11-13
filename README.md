@@ -23,14 +23,17 @@ Run these with `%USERPROFILE%\autoreframe-env\Scripts\python.exe`, where `<clips
    - **Fall:** you end up on the ground.
    - **Drop it:** you step off or the board flies away, or there's no trick (just rolling or pushing).
 
-   Note where the trick really starts (before the pop or the approach onto the ledge) and end the clip about 2 s after the **last** landing. Check the ride-away for a second, back-to-back trick: candidates closer than 3 s apart are merged, so a quick second trick has no row of its own.
+   Note where the trick really starts (before the pop or the approach onto the ledge) and end the clip about 2 s after the **last** landing. Check the ride-away for a second, back-to-back trick: `review_strips.py` uses `--gap 1.5` by default so back-to-back tricks get their own rows, but still check the ride-away.
 4. **Write `jobs.json`** with start and end in source seconds, e.g. `[{"n": 24, "start": 92.6, "end": 99.8, "label": "landed"}]`, then render:
    `render_selected.py <clips> <review> <clips>\tricks_v1 <review>\jobs.json`
-5. **Join** the clips into one video (all clips share the same encoding, so no re-encode is needed):
+5. **Trim the ride-away tails** the way you trim by hand:
+   `trim_ends.py <clips> <review> <clips>\tricks_v1`
+   Each clip ends once the rider has shrunk to below 25% of their size at the trick, but never sooner than 1 s after it. The rule (`end_rule.json`) was fitted to the LosslessCut trims of session 46 part 2, where it lands within 0.6 s of the hand cuts on average (0.9 s before). Falls and long grinds (over 7 s) keep their judged end. Add `--dry-run` to only print the new lengths.
+6. **Join** the clips into one video. Re-encode once while joining: after `trim_ends.py`'s stream-copy trims, a plain `-c copy` join leaves small timestamp glitches at a few seams.
 
    ```bash
    ls *.mp4 | sort | sed "s/.*/file '&'/" > list.txt
-   ffmpeg -f concat -safe 0 -i list.txt -c copy ../tricks.mp4
+   ffmpeg -f concat -safe 0 -i list.txt -c:v libx264 -preset veryfast -crf 18 -pix_fmt yuv420p -c:a aac -b:a 192k ../tricks.mp4
    ```
 
 `examples/part2/` has the real `candidates.json` and `jobs.json` from session 46 part 2.
