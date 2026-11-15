@@ -13,6 +13,7 @@ Run these with `%USERPROFILE%\autoreframe-env\Scripts\python.exe`, where `<clips
 
 1. **Scan** (once per clip, about as long as the footage):
    `scan.py <clips>`
+   Or start `watch_scan.py <clips>` while the files are still copying off the camera. It scans each file once its size stops changing, and exits 20 min after the last new file.
 2. **Candidates and quick sheets:**
    `review_strips.py <clips> <review> --threshold 0.3`
    This writes `candidates.json` (number, clip, time, score) and `sheet_XX.jpg` (7 frames per candidate). Use it to drop the obvious non-tricks (walking, board flying away).
@@ -21,20 +22,27 @@ Run these with `%USERPROFILE%\autoreframe-env\Scripts\python.exe`, where `<clips
    For each candidate, decide:
    - **Landed:** you ride away on the board for at least about 1 s.
    - **Fall:** you end up on the ground.
-   - **Drop it:** you step off or the board flies away, or there's no trick (just rolling or pushing).
+   - **Fail:** you step off or the board flies away. Keep these only when filling a video to a set length (step 6).
+   - **Drop it:** no trick (just rolling, pushing, walking or handling the camera).
+
+   When the same trick is landed several times in one recording (for example a bank trick over and over), keep only the **last** landed one; it's usually the best. The camera splits long recordings into chapters (`GS01xxxx`, then `GS02xxxx` with the same number), so treat those as one recording.
 
    Note where the trick really starts (before the pop or the approach onto the ledge) and end the clip about 2 s after the **last** landing. Check the ride-away for a second, back-to-back trick: `review_strips.py` uses `--gap 1.5` by default so back-to-back tricks get their own rows, but still check the ride-away.
 4. **Write `jobs.json`** with start and end in source seconds, e.g. `[{"n": 24, "start": 92.6, "end": 99.8, "label": "landed"}]`, then render:
    `render_selected.py <clips> <review> <clips>\tricks_v1 <review>\jobs.json`
 5. **Trim the ride-away tails** the way you trim by hand:
    `trim_ends.py <clips> <review> <clips>\tricks_v1`
-   Each clip ends once the rider has shrunk to below 25% of their size at the trick, but never sooner than 1 s after it. The rule (`end_rule.json`) was fitted to the LosslessCut trims of session 46 part 2, where it lands within 0.6 s of the hand cuts on average (0.9 s before). Falls and long grinds (over 7 s) keep their judged end. Add `--dry-run` to only print the new lengths.
+   Each clip ends once the rider has shrunk to below 25% of their size at the trick, but never sooner than 1 s after it. The rule (`end_rule.json`) was fitted to the LosslessCut trims of session 46 part 2, where it lands within 0.6 s of the hand cuts on average (0.9 s before). Falls and long grinds (over 7 s) keep their judged end. Add `--dry-run` to only print the new lengths. The rule can end a line too early when you keep going after the first landing (onto a hump or a second ledge); re-render those clips with a later `end` and skip the trim for them.
 6. **Join** the clips into one video. Re-encode once while joining: after `trim_ends.py`'s stream-copy trims, a plain `-c copy` join leaves small timestamp glitches at a few seams.
 
    ```bash
    ls *.mp4 | sort | sed "s/.*/file '&'/" > list.txt
    ffmpeg -f concat -safe 0 -i list.txt -c:v libx264 -preset veryfast -crf 18 -pix_fmt yuv420p -c:a aac -b:a 192k ../tricks.mp4
    ```
+
+   **To a set length** (e.g. a song's length), render the fails too and let `fit_length.py` pick them:
+   `fit_length.py <clips>\tricks_v1 350 <clips>\video.mp4`
+   It keeps every landed trick and fall, adds fails spread across the session until the total fits, shortens one fail's tail to hit the length exactly, and joins with the re-encode. Spare fails go to `unused_fails\`, and nothing is deleted. Extra fail folders can be listed after the output to widen the pool.
 
 `examples/part2/` has the real `candidates.json` and `jobs.json` from session 46 part 2.
 
@@ -99,6 +107,9 @@ Edits are matched to their `.360` by file name (`GS016712 (2).mp4` → `GS016712
 - `tricks.py`: trick finding and the model
 - `train_model.py`: learns from your edits
 - `review_strips.py`, `review_detail.py`: picture sheets for judging each attempt
+- `watch_scan.py`: scans clips as they finish copying off the camera
+- `trim_ends.py` + `end_rule.json`: shortens ride-away tails like your hand trims
+- `fit_length.py`: fills a video to an exact length with fails and joins it
 - `render_selected.py`: renders the chosen candidates (`landed=1,4 fall=3` or a `jobs.json` with per-clip start and end)
 - `autoreframe.py`: 360 → flat video rendering (GPU). Run on its own, it's the older "last N seconds" mode.
 - `yolo11s.pt` isn't in the repo; ultralytics downloads it on first use.
