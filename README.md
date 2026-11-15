@@ -42,7 +42,9 @@ Run these with `%USERPROFILE%\autoreframe-env\Scripts\python.exe`, where `<clips
 
    **To a set length** (e.g. a song's length), render the fails too and let `fit_length.py` pick them:
    `fit_length.py <clips>\tricks_v1 350 <clips>\video.mp4`
-   It keeps every landed trick and fall, adds fails spread across the session until the total fits, shortens one fail's tail to hit the length exactly, and joins with the re-encode. Spare fails go to `unused_fails\`, and nothing is deleted. Extra fail folders can be listed after the output to widen the pool.
+   It keeps every landed trick and fall, adds fails spread across the session until the total fits, shortens one fail's tail to hit the length exactly, and joins with the re-encode. Spare fails go to `unused_fails\`, and nothing is deleted. Extra fail folders can be listed after the output to widen the pool. The real joined length is measured first (each seam loses a few ms), so the result is exact.
+   `fit_length.py <clips>\tricks_v1 0 <clips>\landed_and_slams.mp4 --only landed,fall` just joins the chosen kinds without filling.
+   Your own exports (e.g. a GoPro Player clip dropped into the folder, HEVC at 59.94 fps) are converted to a matching temporary copy for the join; the file itself is left as it is.
 
 `examples/part2/` has the real `candidates.json` and `jobs.json` from session 46 part 2.
 
